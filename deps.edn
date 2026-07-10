@@ -17,6 +17,19 @@
                       {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
          :main-opts ["-m" "cognitect.test-runner"]
          :exec-fn cognitect.test-runner.api/test}
+  ;; OPTIONAL -- pulls in cloud-itonami-isic-6311 (market-data actor) for
+  ;; `portal.marketdata-bridge` and its test only. `portal.*` core never
+  ;; needs this; `clojure -M:dev:test` (no :market-data) stays green
+  ;; without cloud-itonami-isic-6311 checked out at all. `:main-opts` here
+  ;; must come LAST on the command line to win over :test's (aliases don't
+  ;; merge :main-opts, the last-selected alias defining it wins) --
+  ;; `clojure -M:dev:test:market-data`, not `:market-data:dev:test`.
+  :market-data {:extra-paths ["test-market-data"]
+                :extra-deps {io.github.cloud-itonami/cloud-itonami-isic-6311
+                             {:local/root "../../cloud-itonami/cloud-itonami-isic-6311"}
+                             io.github.cognitect-labs/test-runner
+                             {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                :main-opts ["-m" "cognitect.test-runner" "-d" "test" "-d" "test-market-data"]}
   ;; static analysis — clj-kondo from deps (no binary), errors fail CI.
   :lint {:replace-deps {clj-kondo/clj-kondo {:mvn/version "2024.11.14"}}
          :main-opts    ["-m" "clj-kondo.main"

@@ -59,7 +59,8 @@
    {"src-gov1"  {:id "src-gov1" :name "デモ連邦機関(米国、デモ)" :license-class :public-domain :trust-tier :high}
     "src-cc1"   {:id "src-cc1" :name "デモCC-BYブログ" :license-class :cc-attribution :trust-tier :medium}
     "src-news1" {:id "src-news1" :name "デモニュースワイヤー(excerpt only)" :license-class :fair-use-excerpt :trust-tier :high}
-    "src-synd1" {:id "src-synd1" :name "デモ配信提携先(ライセンス契約)" :license-class :licensed-syndication :trust-tier :high}}
+    "src-synd1" {:id "src-synd1" :name "デモ配信提携先(ライセンス契約)" :license-class :licensed-syndication :trust-tier :high}
+    "src-md6311" {:id "src-md6311" :name "cloud-itonami-isic-6311(governed market-data actor)" :license-class :cloud-itonami-market-data-feed :trust-tier :high}}
    :listings
    {"li-100" {:id "li-100" :title "デモ記事A" :snippet "公共ドメイン記事の全文転載(デモ)。"
               :source-id "src-gov1" :category :public-affairs :status :live

@@ -21,7 +21,9 @@
       (is (true? (:active? (store/content-license s "lic-synd1"))))
       (is (false? (:active? (store/content-license s "lic-expired"))))
       (is (= 2 (count (store/all-listings s))))
-      (is (= 4 (count (store/all-sources s)))))))
+      ;; 5 = 4 original demo sources + src-md6311 (cloud-itonami-isic-6311
+      ;; market-data-feed bridge source, portal.marketdata-bridge).
+      (is (= 5 (count (store/all-sources s)))))))
 
 (deftest write-and-ledger-parity
   (doseq [[label s] (backends)]

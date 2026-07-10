@@ -93,6 +93,29 @@ clojure -M:dev:run    # 8-operation demo through one OperationActor
 clojure -M:lint
 ```
 
+## Consuming cloud-itonami-isic-6311 for market-data content
+
+`src/portal/marketdata_bridge.cljc` is an OPTIONAL bridge (not a
+compile-time dependency of `portal.*` core) that sources a listing from a
+sibling [`cloud-itonami-isic-6311`](https://github.com/cloud-itonami/cloud-itonami-isic-6311)
+(multi-asset market-data actor) governed `:disclosure/query` result — a
+finance-portal "market snapshot" widget, curated exactly like any other
+third-party content item. The upstream query still goes through
+isic-6311's own MarketDataGovernor first; the resulting listing then
+STILL goes through this actor's own PortalGovernor unchanged (source-
+provenance-gate, licensed-disclosure, ...) — a market-data-sourced
+listing is never special-cased past portal's governance, only ever
+composed with it. If the upstream query doesn't commit, the bridge emits
+`:source nil`, which portal's own governor independently HARD-rejects too
+(see `src/portal/facts.cljc`'s `:cloud-itonami-market-data-feed` class and
+`test-market-data/portal/marketdata_bridge_test.clj`).
+
+```bash
+# needs cloud-itonami-isic-6311 checked out as a sibling repo
+# (../../cloud-itonami/cloud-itonami-isic-6311 relative to this repo)
+clojure -M:dev:test:market-data   # runs the bridge test too (main-opts order matters)
+```
+
 ## Non-Negotiables
 
 - Do not commit real listing content about real named individuals or
