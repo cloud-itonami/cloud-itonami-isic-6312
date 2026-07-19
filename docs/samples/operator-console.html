@@ -1,0 +1,65 @@
+<html><head><meta charset="utf-8"><title>cloud-itonami-isic-6312 &middot; web portals</title><style>
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ok { color: #137a3f; }
+body { font-family: system-ui,-apple-system,sans-serif; margin: 0; color: #1a1a1a; background: #fafafa; }
+header.bar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #e5e5e5; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+h2 { margin-top: 0; font-size: 15px; }
+.warn { color: #b25c00; background: #fff8e1; padding: 2px 6px; border-radius: 4px; }
+main { max-width: 980px; margin: 24px auto; padding: 0 20px; }
+header.bar h1 { font-size: 18px; margin: 0; font-weight: 600; }
+.muted { color: #888; font-size: 13px; }
+.critical { color: #fff; background: #b3261e; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.err { color: #b3261e; background: #fbe9e7; padding: 2px 6px; border-radius: 4px; }
+th { font-weight: 600; color: #555; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+header.bar .badge { margin-left: auto; font-size: 12px; color: #666; }
+code { font-size: 12px; background: #f4f4f4; padding: 1px 4px; border-radius: 3px; }
+</style></head><body>
+<header class="bar">
+  <h1>Web portals (ISIC 6312) — Operator Console</h1>
+  <span class="badge">read-only sample · governor-gated · curates &amp; discloses content only, never handles money movement</span>
+</header>
+<main>
+  <section class="card">
+    <h2>Listings (committed to the SSoT)</h2>
+    <p class="muted">Demo snapshot — build-time-generated from <code>portal.store</code> via <code>portal.render-html</code> (<code>clojure -M:dev:render-html</code>), regenerated nightly. HARD-held publish attempts (li-400, li-500) never reach this table — see the audit ledger below.</p>
+    <table>
+      <thead><tr><th>Listing</th><th>Title</th><th>Source</th><th>Category</th><th>Status</th><th>Allegation subject?</th><th>Last op status</th></tr></thead>
+      <tbody>
+        <tr><td>li-100</td><td>デモ公共ドメイン記事(訂正済み)</td><td>src-gov1</td><td>public-affairs</td><td>live</td><td><span class="muted">no</span></td><td><span class="ok">committed</span></td></tr>
+        <tr><td>li-200</td><td>デモ記事B(告発系)</td><td>src-news1</td><td>investigative</td><td>live</td><td><span class="warn">yes</span></td><td><span class="muted">no activity</span></td></tr>
+        <tr><td>li-300</td><td>デモ公共ドメイン記事</td><td>src-gov1</td><td>public-affairs</td><td>live</td><td><span class="muted">no</span></td><td><span class="ok">committed</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Action gate (PortalGovernor)</h2>
+    <p class="muted">HARD holds cannot be overridden. Source provenance and excerpt scope are checked independently of the LLM's own stated confidence; sponsored placements and sensitive-subject content route through human review before anything is disclosed.</p>
+    <table>
+      <thead><tr><th>Op</th><th>Gate</th></tr></thead>
+      <tbody>
+        <tr><td><code>:listing/publish</code></td><td><span class="ok">phase-3 auto-commit when clean &amp; high-confidence</span> &middot; <span class="critical">source-provenance-gate / license-scope-gate HARD</span></td></tr>
+        <tr><td><code>:placement/feature</code></td><td><span class="ok">phase-3 auto-commit when clean</span> &middot; <span class="critical">disclosure-gate HARD</span> (sponsored w/o label) &middot; <span class="warn">sensitive-subject listings ALWAYS escalate</span></td></tr>
+        <tr><td><code>:report/query</code></td><td><span class="muted">governed read, no SSoT write</span> &middot; <span class="critical">licensed-disclosure HARD</span> (tier over-disclosure)</td></tr>
+        <tr><td><code>:takedown/request</code></td><td><span class="warn">ALWAYS human approval &middot; never auto, any phase, any confidence</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Audit ledger (this run)</h2>
+    <p class="muted">Append-only decision-fact log — every proposal, hold, escalation and commit this scenario produced.</p>
+    <table>
+      <thead><tr><th>Fact</th><th>Op</th><th>Subject</th><th>Basis</th></tr></thead>
+      <tbody>
+        <tr><td>committed</td><td><code>publish</code></td><td>li-300</td><td>title, snippet, source-id, category</td></tr>
+        <tr><td>committed</td><td><code>feature</code></td><td>slot-home-3</td><td>listing-id, sponsored?</td></tr>
+        <tr><td>committed</td><td><code>request</code></td><td>li-100</td><td>title</td></tr>
+        <tr><td>policy-hold</td><td><code>publish</code></td><td>li-400</td><td>source-provenance-gate</td></tr>
+        <tr><td>policy-hold</td><td><code>publish</code></td><td>li-500</td><td>license-scope-gate</td></tr>
+        <tr><td>policy-hold</td><td><code>feature</code></td><td>slot-home-2</td><td>disclosure-gate</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+</body></html>
