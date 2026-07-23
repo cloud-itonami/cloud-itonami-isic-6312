@@ -1,0 +1,27 @@
+{:itonami.blueprint/id "cloud-itonami-isic-6312"
+ :itonami.blueprint/name "Web portals — third-party content aggregation and curation"
+ :itonami.blueprint/isic-rev4 "6312"
+ :itonami.blueprint/domain :media/web-portal
+ :itonami.blueprint/license "AGPL-3.0-or-later"
+ :itonami.blueprint/social-impact [:content-provenance :license-compliance :sponsorship-disclosure]
+ :itonami.blueprint/governor :portal-governor
+ :itonami.blueprint/robotics false
+ :itonami.blueprint/required-technologies [:identity :audit-ledger]
+ :itonami.blueprint/status :public-oss
+ :itonami.blueprint/maturity :implemented
+ :itonami.blueprint/implemented-slice
+ "PortalCurator-LLM ⊣ PortalGovernor (portal.policy, eight checks: rbac ·
+  source-provenance-gate · license-scope-gate (17 U.S.C. §107 fair-use-
+  excerpt ceiling, this actor's domain-unique HARD check) ·
+  disclosure-gate (16 CFR Part 255 native-advertising disclosure, second
+  domain-unique HARD check) · licensed-disclosure · confidence-floor ·
+  sensitive-subject-gate · correction-requests-always-escalate), langgraph
+  StateGraph (portal.operation), append-only audit ledger
+  (portal.store/ledger + append-ledger!). A phase 0→3 staged-autonomy gate
+  (portal.phase) sits on top of the governor and can only narrow, never
+  widen, what the governor already allowed. 35 tests / 141 assertions
+  green (`clojure -M:dev:test`), demo runnable end-to-end
+  (`clojure -M:dev:run`). Optional `portal.marketdata-bridge` integration
+  with the sibling cloud-itonami-isic-6311 market-data actor is covered by
+  a separate opt-in test suite (`clojure -M:dev:test:market-data`) that
+  isn't required for `portal.*` core to stay green."}
