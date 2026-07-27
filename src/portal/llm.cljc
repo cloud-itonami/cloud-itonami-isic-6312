@@ -85,6 +85,49 @@
      :columns   (if greedy? (into base greedy-extra) base)
      :confidence 0.9}))
 
+(defn- propose-poi-publish
+  "POI (map pin) draft. Two injectable failure modes specific to the map
+  slice, both of which the advisor is structurally incapable of catching:
+  `:drop-coord?` simulates a geocoder returning nothing (the pin would
+  land at a meaningless coordinate), and an unresolvable/lapsed `:lei` or
+  a residence tied to a named person simply comes through as data — the
+  governor's entity-verification and residential-privacy gates reject
+  those independently of anything the advisor believes."
+  [_db {:keys [subject name lat lng category isic-code lei source-id residential?
+               subject-name source unsourced? drop-coord?]}]
+  (let [src (when-not unsourced? source)]
+    {:summary   (str "POI publish: " name)
+     :rationale "地物情報の正規化のみ。法人実体の実在性・居住地の可否は判断していない(governor が判定)。"
+     :cites     [:name :lat :lng :category :isic-code :lei :source-id]
+     :source    src
+     :effect    :poi-upsert
+     :value     {:id subject :name name
+                 :lat (when-not drop-coord? lat) :lng (when-not drop-coord? lng)
+                 :category category :isic-code isic-code :lei lei
+                 :source-id source-id :status :live
+                 :residential? (boolean residential?) :subject-name subject-name
+                 :as-of "2026-07-10T12:00:00Z"}
+     ;; deliberately HIGH confidence in every failure mode — proves the
+     ;; three map-slice HARD gates do not care about confidence at all.
+     :confidence 0.95}))
+
+(defn- propose-poi-search
+  "Governed geo disclosure draft: a radius search around a center point,
+  with a proposed column set. `:greedy?` injects over-disclosure (pulls
+  the fleet join keys and the audit-only columns beyond a basic-tier
+  contract) — the licensed-disclosure gate must reject the excess."
+  [_db {:keys [center-lat center-lng radius-km greedy?]}]
+  (let [base [:poi-id :name :lat :lng :category :status :as-of :distance-km]
+        greedy-extra [:lei :isic-code :source-id :subject-name]]
+    {:summary   (str "POI検索: 半径 " radius-km "km")
+     :rationale (if greedy? "分析に有用そうな列を広めに含めた。" "契約 tier に必要な最小列のみ。")
+     :cites     base
+     :source    nil
+     :effect    :poi-disclosure-serve
+     :value     {:lat center-lat :lng center-lng :radius-km radius-km}
+     :columns   (if greedy? (into base greedy-extra) base)
+     :confidence 0.9}))
+
 (defn- propose-takedown
   "Takedown/dispute resolution draft. This NEVER auto-applies —
   `portal.policy` and `portal.phase` both structurally force every
@@ -106,6 +149,8 @@
     :listing/publish     (propose-publish db request)
     :placement/feature   (propose-feature db request)
     :report/query        (propose-report db request)
+    :poi/publish         (propose-poi-publish db request)
+    :poi/search          (propose-poi-search db request)
     :takedown/request    (propose-takedown db request)
     {:summary "未対応の操作" :rationale (str op) :cites [] :source nil
      :effect :noop :confidence 0.0}))
@@ -130,16 +175,25 @@
        "説明や前置きは一切書かず、EDN だけを出力します。\n"
        "キー: :summary(人向けドラフト) :rationale(根拠/必ず事実から) "
        ":cites(使った事実キーのベクタ) :source({:class .. :ref .. :license-id? ..}か nil) "
-       ":effect(:listing-upsert|:placement-upsert|:disclosure-serve|:correction-apply) "
+       ":effect(:listing-upsert|:placement-upsert|:poi-upsert|:disclosure-serve"
+       "|:poi-disclosure-serve|:correction-apply) "
        ":value(該当マップ) :confidence(0..1)。\n"
-       "重要: 出典(:source)を伴わないリスティングは絶対に提案してはいけません。"
+       "重要: 出典(:source)を伴わないリスティング・POI は絶対に提案してはいけません。"
        "スポンサード配置には必ず開示ラベルを提案してください。抜粋の著作権範囲判定・"
-       "告発対象の機微性判断はあなたの責務ではありません(governor が判定します)。"))
+       "告発対象の機微性判断はあなたの責務ではありません(governor が判定します)。\n"
+       "地図(POI)について: 座標は分かる場合のみ入れ、推測で埋めないでください。"
+       "法人実体(:lei)の実在性・登録状態、居住地を公開してよいかの判断も"
+       "あなたの責務ではありません(governor が独立に検証します)。"))
 
-(defn- facts-for [st {:keys [op subject listing-id]}]
+(defn- facts-for [st {:keys [op subject listing-id lei]}]
   (case op
     :placement/feature {:listing (store/listing st listing-id)}
     :report/query      {:listing (store/listing st subject)}
+    ;; The advisor is shown the registry record but is NOT asked to judge
+    ;; it — `entity-verification-gate` resolves it independently.
+    :poi/publish       {:poi (store/poi st subject)
+                        :lei-entity (when lei (store/lei-entity st lei))}
+    :poi/search        {:poi-count (count (store/all-pois st))}
     {:listing (store/listing st subject)}))
 
 (defn- parse-proposal

@@ -51,6 +51,40 @@
         (store/append-ledger! s {:op :b :disposition :hold})
         (is (= [:commit :hold] (mapv :disposition (take-last 2 (store/ledger s)))))))))
 
+(deftest poi-and-entity-read-parity
+  (doseq [[label s] (backends)]
+    (testing label
+      (is (= "デモ書店(架空)" (:name (store/poi s "poi-100"))))
+      (is (= :retail (:category (store/poi s "poi-100"))))
+      (is (= "DEMO0000000000000001" (:lei (store/poi s "poi-100"))))
+      (is (= "4761" (:isic-code (store/poi s "poi-100"))))
+      (is (false? (:residential? (store/poi s "poi-100"))))
+      (is (nil? (:lei (store/poi s "poi-200"))) "a park claims no legal entity")
+      (is (= 2 (count (store/all-pois s))))
+      (testing "coordinates survive the round-trip as numbers, not strings"
+        (let [p (store/poi s "poi-100")]
+          (is (number? (:lat p)))
+          (is (number? (:lng p)))
+          (is (< (Math/abs (- (double (:lat p)) 35.681236)) 1e-9))))
+      (testing "LEI registry records"
+        (is (= :issued (:status (store/lei-entity s "DEMO0000000000000001"))))
+        (is (= :lapsed (:status (store/lei-entity s "DEMO0000000000000002"))))
+        (is (= "4761" (:isic-code (store/lei-entity s "DEMO0000000000000001"))))
+        (is (nil? (store/lei-entity s "DEMO0000000000009999")))))))
+
+(deftest poi-write-parity
+  (doseq [[label s] (backends)]
+    (testing label
+      (store/commit-record! s {:effect :poi-upsert
+                               :value {:id "poi-100" :name "更新後デモ書店" :lat 35.7 :lng 139.8
+                                       :category :retail :isic-code "4761"
+                                       :lei "DEMO0000000000000001" :source-id "src-gov1"
+                                       :status :live :residential? false :subject-name nil
+                                       :as-of "2026-07-11T00:00:00Z"}})
+      (is (= "更新後デモ書店" (:name (store/poi s "poi-100"))))
+      (is (< (Math/abs (- (double (:lat (store/poi s "poi-100"))) 35.7)) 1e-9))
+      (is (= 2 (count (store/all-pois s))) "upsert replaces, never duplicates"))))
+
 (deftest contract-lookup
   (doseq [[label s] (backends)]
     (testing label

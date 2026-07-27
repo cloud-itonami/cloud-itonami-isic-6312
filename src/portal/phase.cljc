@@ -7,15 +7,23 @@
   conservative than the governor: it downgrades a governor-clean commit
   to approval or hold, never the reverse.
 
-    Phase 0  read-only         — no writes at all. `:report/query` only
-                                 (still governor-gated).
+    Phase 0  read-only         — no writes at all. `:report/query` and
+                                 `:poi/search` only (still governor-gated).
     Phase 1  assisted-publish  — `:listing/publish` allowed, every publish
                                  needs human approval.
-    Phase 2  + feature/takedown — adds `:placement/feature` and
-                                 `:takedown/request` (still approval-only).
+    Phase 2  + feature/takedown/poi — adds `:placement/feature`,
+                                 `:takedown/request` and `:poi/publish`
+                                 (still approval-only).
     Phase 3  supervised auto   — governor-clean, high-confidence
-                                 `:listing/publish`/`:placement/feature`
-                                 may auto-commit.
+                                 `:listing/publish`/`:placement/feature`/
+                                 `:poi/publish` may auto-commit.
+
+  `:poi/publish` enters one phase LATER than `:listing/publish`: a pin
+  asserts a business exists at a place, and that assertion is only
+  checkable once the operator has actually wired an entity registry the
+  `entity-verification-gate` can resolve against (com-junkawasaki/root
+  ADR-2607276000). An operator with no registry seeded should not be
+  publishing POIs at phase 1 just because they can publish articles.
 
   `:takedown/request` is deliberately NEVER a member of any phase's
   `:auto` set, at any phase — a rightsholder/subject dispute always
@@ -26,8 +34,8 @@
   (:commit | :escalate | :hold) and returning the phase-adjusted
   disposition plus a reason when the phase changed it.")
 
-(def read-ops  #{:report/query})
-(def write-ops #{:listing/publish :placement/feature :takedown/request})
+(def read-ops  #{:report/query :poi/search})
+(def write-ops #{:listing/publish :placement/feature :takedown/request :poi/publish})
 
 (def phases
   "phase → {:label .. :writes <ops allowed to write> :auto <ops allowed to
@@ -37,10 +45,10 @@
                                   :auto #{}}
    1 {:label "assisted-publish"  :writes #{:listing/publish}
                                   :auto #{}}
-   2 {:label "assisted-feature"  :writes #{:listing/publish :placement/feature :takedown/request}
+   2 {:label "assisted-feature"  :writes #{:listing/publish :placement/feature :takedown/request :poi/publish}
                                   :auto #{}}
-   3 {:label "supervised-auto"   :writes #{:listing/publish :placement/feature :takedown/request}
-                                  :auto #{:listing/publish :placement/feature}}})
+   3 {:label "supervised-auto"   :writes #{:listing/publish :placement/feature :takedown/request :poi/publish}
+                                  :auto #{:listing/publish :placement/feature :poi/publish}}})
 
 (def default-phase
   "The phase used when `context` carries no :phase at all

@@ -32,6 +32,8 @@
   (default `docs/samples/operator-console.html`)."
   (:require [jp-go-dds.skin]
             [clojure.string :as str]
+            [portal.geo :as geo]
+            [portal.report :as report]
             [portal.store :as store]
             [portal.operation :as op]
             [langgraph.graph :as g]))
@@ -71,8 +73,25 @@
       the governor) -> `:disclosure-gate` HARD-holds, never reaches a
       human.
 
-  Three DISTINCT HARD-hold reasons (source-provenance-gate,
-  license-scope-gate, disclosure-gate) never reach a human; two
+  Map slice (com-junkawasaki/root ADR-2607276000):
+
+    - poi-300: a commercial pin whose claimed legal entity resolves to an
+      ISSUED registry record with a matching ISIC code -> phase-3
+      AUTO-COMMIT. This is the only pin the console plots.
+    - poi-310: the same shape but the entity's registration is LAPSED ->
+      `:entity-verification-gate` HARD-holds (the fabricated/stale
+      business-listing defense).
+    - poi-320: a private residence tied to a named individual ->
+      `:residential-privacy-gate` HARD-holds (APPI/GDPR).
+    - poi-330: a geocoder dropout leaves the pin with no coordinate ->
+      `:geo-bounds-gate` HARD-holds.
+    - search-greedy: a basic-tier ad buyer asks for the `:lei`/
+      `:isic-code` join keys and `:subject-name` -> `:licensed-disclosure`
+      HARD-holds.
+
+  Six DISTINCT HARD-hold reasons in total (source-provenance-gate,
+  license-scope-gate, disclosure-gate, entity-verification-gate,
+  residential-privacy-gate, geo-bounds-gate) never reach a human; two
   distinct ALWAYS-escalate reasons (sensitive-subject, takedown-dispute)
   both do, and are approved. Returns the resulting store -- every field
   read by `render` below is real governor/store output, not a hand-typed
@@ -82,7 +101,8 @@
         actor (op/build db)
         editor {:actor-id "ed-1" :actor-role :content-editor :phase 3}
         adops  {:actor-id "ao-1" :actor-role :ad-ops :phase 3}
-        tsafe  {:actor-id "ts-1" :actor-role :trust-safety-officer :phase 3}]
+        tsafe  {:actor-id "ts-1" :actor-role :trust-safety-officer :phase 3}
+        geoed  {:actor-id "geo-1" :actor-role :geo-editor :phase 3}]
 
     (exec! actor "li-300-publish"
            {:op :listing/publish :subject "li-300" :title "デモ公共ドメイン記事"
@@ -121,6 +141,45 @@
            {:op :placement/feature :subject "slot-home-2" :listing-id "li-100"
             :sponsored? true :disclosure-label "Sponsored" :no-disclosure? true}
            adops)
+
+    ;; ── map slice (com-junkawasaki/root ADR-2607276000) ──
+    ;; One clean POI commit plus each of the three map-slice HARD gates,
+    ;; so the pins the console plots and the holds it lists are both real
+    ;; governor output from this same run.
+    (exec! actor "poi-300-publish"
+           {:op :poi/publish :subject "poi-300" :name "デモ書店支店(架空)"
+            :lat 35.6812 :lng 139.7671 :category :retail :isic-code "4761"
+            :lei "DEMO0000000000000001" :source-id "src-gov1"
+            :residential? false :subject-name nil
+            :source {:class :public-domain :ref "usc-17-105:demo"}}
+           geoed)
+
+    (exec! actor "poi-310-publish"
+           {:op :poi/publish :subject "poi-310" :name "失効デモ商店(架空)"
+            :lat 35.6820 :lng 139.7680 :category :retail :isic-code "4711"
+            :lei "DEMO0000000000000002" :source-id "src-gov1"
+            :residential? false :subject-name nil
+            :source {:class :public-domain :ref "usc-17-105:demo"}}
+           geoed)
+
+    (exec! actor "poi-320-publish"
+           {:op :poi/publish :subject "poi-320" :name "デモ住宅(架空)"
+            :lat 35.6830 :lng 139.7690 :category :residence :isic-code nil :lei nil
+            :source-id "src-gov1" :residential? true :subject-name "架空 太郎"
+            :source {:class :public-domain :ref "usc-17-105:demo"}}
+           geoed)
+
+    (exec! actor "poi-330-publish"
+           {:op :poi/publish :subject "poi-330" :name "座標不明デモ地点(架空)"
+            :lat 35.6840 :lng 139.7700 :category :park :isic-code nil :lei nil
+            :source-id "src-gov1" :residential? false :subject-name nil
+            :source {:class :public-domain :ref "usc-17-105:demo"} :drop-coord? true}
+           geoed)
+
+    (exec! actor "poi-search-greedy"
+           {:op :poi/search :subject "search-greedy" :greedy? true
+            :center-lat 35.6812 :center-lng 139.7671 :radius-km 5.0}
+           {:actor-id "adv-1" :actor-role :advertiser-client :tenant "tenant-basic"})
     db))
 
 ;; ----------------------------- rendering -----------------------------
@@ -159,6 +218,46 @@
           (esc (name t)) (esc (name (or op :n-a))) (esc subject)
           (esc (or (some->> basis (map name) (str/join ", ")) (some-> disposition name) ""))))
 
+;; ----------------------------- map slice -----------------------------
+
+(def ^:private console-area
+  "The bounding box the console plots pins in. Chosen to contain the demo
+  POIs; an operator's own console uses their declared service area."
+  {:min-lat 35.6740 :max-lat 35.6900 :min-lng 139.7440 :max-lng 139.7760})
+
+(def ^:private plot-w 900.0)
+(def ^:private plot-h 340.0)
+
+(defn- name* [k] (if (keyword? k) (name k) (str k)))
+
+(defn- poi-pin
+  "One committed POI as an SVG pin. Position comes from `portal.geo/plot-xy`
+  (Web Mercator, latitude clamped through kotoba-lang/map), so a pin's
+  place on this page is computed, never hand-placed."
+  [{:keys [id lat lng category] poi-name :name}]
+  (when-let [[x y] (geo/plot-xy console-area {:lat lat :lng lng} plot-w plot-h)]
+    (format (str "        <g><circle cx=\"%.1f\" cy=\"%.1f\" r=\"7\" class=\"pin\"/>"
+                 "<text x=\"%.1f\" y=\"%.1f\" class=\"pin-label\">%s</text>"
+                 "<title>%s · %s (%.6f, %.6f)</title></g>")
+            x y (+ x 12.0) (+ y 4.0) (esc poi-name)
+            (esc id) (esc (name* (or category :n-a))) (double lat) (double lng))))
+
+(defn- poi-row [ledger {:keys [id category isic-code lei status] poi-name :name}]
+  (format "        <tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><code>%s</code></td><td>%s</td><td>%s</td></tr>"
+          (esc id) (esc poi-name) (esc (name* (or category :n-a)))
+          (esc (or isic-code "—")) (esc (or lei "—"))
+          (esc (name* (or status :n-a)))
+          (status-cell ledger id)))
+
+(defn- held-poi-row
+  "A pin the governor refused, read back out of the ledger rather than
+  re-stated here — the console must not be able to claim a hold the run
+  did not actually produce."
+  [{:keys [subject violations]}]
+  (let [{:keys [rule detail]} (first violations)]
+    (format "        <tr><td>%s</td><td><span class=\"critical\">%s</span></td><td class=\"muted\">%s</td></tr>"
+            (esc subject) (esc (name* (or rule :unknown))) (esc detail))))
+
 (def ^:private action-gate-rows
   ;; Static description of this actor's own closed op contract
   ;; (README, `portal.policy`/`portal.phase`) -- documentation of fixed
@@ -167,7 +266,9 @@
   ["        <tr><td><code>:listing/publish</code></td><td><span class=\"ok\">phase-3 auto-commit when clean &amp; high-confidence</span> &middot; <span class=\"critical\">source-provenance-gate / license-scope-gate HARD</span></td></tr>"
    "        <tr><td><code>:placement/feature</code></td><td><span class=\"ok\">phase-3 auto-commit when clean</span> &middot; <span class=\"critical\">disclosure-gate HARD</span> (sponsored w/o label) &middot; <span class=\"warn\">sensitive-subject listings ALWAYS escalate</span></td></tr>"
    "        <tr><td><code>:report/query</code></td><td><span class=\"muted\">governed read, no SSoT write</span> &middot; <span class=\"critical\">licensed-disclosure HARD</span> (tier over-disclosure)</td></tr>"
-   "        <tr><td><code>:takedown/request</code></td><td><span class=\"warn\">ALWAYS human approval &middot; never auto, any phase, any confidence</span></td></tr>"])
+   "        <tr><td><code>:takedown/request</code></td><td><span class=\"warn\">ALWAYS human approval &middot; never auto, any phase, any confidence</span></td></tr>"
+   "        <tr><td><code>:poi/publish</code></td><td><span class=\"ok\">phase-3 auto-commit when clean</span> &middot; <span class=\"critical\">entity-verification-gate / residential-privacy-gate / geo-bounds-gate HARD</span> &middot; <span class=\"muted\">enters one phase later than <code>:listing/publish</code></span></td></tr>"
+   "        <tr><td><code>:poi/search</code></td><td><span class=\"muted\">governed geo read, no SSoT write</span> &middot; <span class=\"critical\">licensed-disclosure HARD</span> (<code>:lei</code>/<code>:isic-code</code> are analytics-tier, <code>:subject-name</code> audit-tier only)</td></tr>"])
 
 (defn render
   "Renders the full operator-console.html document from a store `db`
@@ -176,10 +277,38 @@
   (let [ledger (vec (store/ledger db))
         listings (store/all-listings db)
         listing-rows (str/join "\n" (map (partial listing-row ledger) listings))
-        ledger-rows (str/join "\n" (map ledger-row ledger))]
+        ledger-rows (str/join "\n" (map ledger-row ledger))
+        pois (store/all-pois db)
+        poi-rows (str/join "\n" (map (partial poi-row ledger) pois))
+        pins (str/join "\n" (keep poi-pin pois))
+        held-pois (filter #(and (= :policy-hold (:t %)) (= :poi/publish (:op %))) ledger)
+        held-poi-rows (str/join "\n" (map held-poi-row held-pois))
+        ;; The disclosed columns here are exactly :tier/basic — the set the
+        ;; licensed-disclosure gate approved for tenant-basic in this run.
+        search-cols [:poi-id :name :category :status :distance-km]
+        search-rows (str/join "\n"
+                              (map (fn [r]
+                                     (format "        <tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%.3f km</td></tr>"
+                                             (esc (:poi-id r)) (esc (:name r))
+                                             (esc (name* (or (:category r) :n-a)))
+                                             (esc (name* (or (:status r) :n-a)))
+                                             (double (or (:distance-km r) 0.0))))
+                                   (report/render-poi-search db {:lat 35.6812 :lng 139.7671}
+                                                             5.0 search-cols)))]
     (str
      "<html><head><meta charset=\"utf-8\"><title>cloud-itonami-isic-6312 &middot; web portals</title><style>"
    (jp-go-dds.skin/dds+skin)
+   ;; Map-slice additions only. Everything else stays on the Digital
+   ;; Agency Design System skin — these four rules exist because DADS has
+   ;; no component for an inline coordinate plot.
+   "\n.poi-plot { width: 100%; height: auto; display: block; margin-bottom: 12px; }\n"
+   ".plot-bg { fill: #f4f6f8; stroke: #d8dde2; stroke-width: 1; }\n"
+   ".pin { fill: #b3261e; fill-opacity: 0.85; stroke: #fff; stroke-width: 2; }\n"
+   ".pin-label { font-size: 13px; fill: #1a1a1a; }\n"
+   "@media (prefers-color-scheme: dark) {\n"
+   "  .plot-bg { fill: #1f2937; stroke: #374151; }\n"
+   "  .pin-label { fill: #e5e7eb; }\n"
+   "}\n"
    "</style></head><body>\n"
      "<header class=\"bar\">\n"
      "  <h1>Web portals (ISIC 6312) — Operator Console</h1>\n"
@@ -193,6 +322,40 @@
      "      <thead><tr><th>Listing</th><th>Title</th><th>Source</th><th>Category</th><th>Status</th><th>Allegation subject?</th><th>Last op status</th></tr></thead>\n"
      "      <tbody>\n"
      listing-rows "\n"
+     "      </tbody>\n"
+     "    </table>\n"
+     "  </section>\n"
+     "  <section class=\"card\">\n"
+     "    <h2>Map — governed POIs (ISIC 6312 geo slice)</h2>\n"
+     "    <p class=\"muted\">Pin positions are computed by <code>portal.geo/plot-xy</code> (Web Mercator, latitude clamped through <code>kotoba-lang/map</code>) from the coordinates the PortalGovernor actually committed — nothing here is hand-placed. This page fetches no third-party map tiles; a real deployment reaches them through <code>portal.map-bridge</code>, which consumes <code>kotoba.map.tile-url</code> rather than reimplementing it.</p>\n"
+     "    <svg class=\"poi-plot\" viewBox=\"0 0 " (long plot-w) " " (long plot-h) "\" role=\"img\" aria-label=\"Committed POI positions\">\n"
+     "      <rect x=\"0\" y=\"0\" width=\"" (long plot-w) "\" height=\"" (long plot-h) "\" class=\"plot-bg\"/>\n"
+     pins "\n"
+     "    </svg>\n"
+     "    <table>\n"
+     "      <thead><tr><th>POI</th><th>Name</th><th>Category</th><th>ISIC</th><th>LEI (fleet join key)</th><th>Status</th><th>Last op status</th></tr></thead>\n"
+     "      <tbody>\n"
+     poi-rows "\n"
+     "      </tbody>\n"
+     "    </table>\n"
+     "  </section>\n"
+     "  <section class=\"card\">\n"
+     "    <h2>Pins the governor refused</h2>\n"
+     "    <p class=\"muted\">Read back out of this run's audit ledger — a HARD-held pin never enters the map above, and cannot be re-proposed past the gate by any confidence level or human approver.</p>\n"
+     "    <table>\n"
+     "      <thead><tr><th>POI</th><th>Gate</th><th>Detail</th></tr></thead>\n"
+     "      <tbody>\n"
+     held-poi-rows "\n"
+     "      </tbody>\n"
+     "    </table>\n"
+     "  </section>\n"
+     "  <section class=\"card\">\n"
+     "    <h2>Governed POI search (tier/basic disclosure)</h2>\n"
+     "    <p class=\"muted\">A 5&nbsp;km radius search as a <code>tenant-basic</code> ad buyer sees it. The entity join keys (<code>:lei</code>, <code>:isic-code</code>) are analytics-tier and <code>:subject-name</code> is audit-tier, so none of them appear here — the same run's greedy search asking for them was HARD-held.</p>\n"
+     "    <table>\n"
+     "      <thead><tr><th>POI</th><th>Name</th><th>Category</th><th>Status</th><th>Distance</th></tr></thead>\n"
+     "      <tbody>\n"
+     search-rows "\n"
      "      </tbody>\n"
      "    </table>\n"
      "  </section>\n"

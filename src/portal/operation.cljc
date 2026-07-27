@@ -121,9 +121,10 @@
                             {:t :approval-rejected})]})))
 
       ;; Commit — the ONLY node that writes the SSoT + audit ledger. For
-      ;; `:report/query`, `commit-record!` has no matching `:effect` case
-      ;; (no SSoT mutation) — only the ledger fact is what makes a
-      ;; disclosure event auditable.
+      ;; the disclosure ops (`:report/query`, `:poi/search`),
+      ;; `commit-record!` has no matching `:effect` case (no SSoT
+      ;; mutation) — only the ledger fact is what makes a disclosure event
+      ;; auditable.
       (g/add-node :commit
         (fn [{:keys [request context proposal record]}]
           (store/commit-record! store record)

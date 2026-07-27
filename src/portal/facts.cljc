@@ -104,6 +104,93 @@
               "license, or a real governed sibling integration — never "
               "fabricate any of them.")})
 
+;; ───────────────────────── POI (map slice) legal bases ─────────────────
+
+(def poi-legal-bases
+  "R0 legal bases for the map slice's two POI-specific HARD gates. Same
+  discipline as `catalog` above: a real, citable basis or nothing.
+
+  A map portal's failure modes are not a news portal's. Publishing a pin
+  asserts two things a text listing does not — that a business at that
+  location EXISTS, and that a location is a public place. Both have real
+  legal exposure, and neither is something the PortalCurator-LLM can
+  judge, so both are governor HARD checks:
+
+    1. entity-verification-gate — a commercial POI claims a legal entity.
+       A fabricated business listing is a deceptive act under FTC Act §5
+       (and the reason fake listings are the defining abuse of every
+       consumer map product). The structural answer is an identifier that
+       resolves in a real registry: ISO 17442's Legal Entity Identifier,
+       published by GLEIF with a registration status. Only `:issued`
+       counts — a lapsed/retired LEI is exactly the stale-registration
+       case this gate exists to catch. This is also the join key to the
+       fleet's own `cloud-itonami-lei-*` entity blueprints.
+
+    2. residential-privacy-gate — a POI flagged as a private residence and
+       tied to a named natural person is personal data under 個人情報保護法
+       (APPI) 第2条第1項 (an address identifying a specific living
+       individual) and GDPR Art.4(1). A public map has no default lawful
+       basis to publish it, and no confidence level from the advisor can
+       supply one."
+  [{:id :iso-17442-lei
+    :name "ISO 17442 — Legal Entity Identifier (GLEIF registry)"
+    :gate :entity-verification-gate
+    :basis "A commercial POI's claimed legal entity must resolve to a registry record whose registration status is ISSUED; lapsed/retired registrations are rejected."
+    :url "https://www.gleif.org/en/about-lei/iso-17442-the-lei-code-structure"}
+   {:id :ftc-act-5-deception
+    :name "FTC Act §5 — deceptive acts or practices"
+    :gate :entity-verification-gate
+    :basis "Publishing a business listing for an entity that cannot be shown to exist is a deceptive representation to consumers."
+    :url "https://www.ftc.gov/legal-library/browse/statutes/federal-trade-commission-act"}
+   {:id :appi-art-2-1
+    :name "個人情報保護法 第2条第1項 — 個人情報の定義"
+    :gate :residential-privacy-gate
+    :basis "特定の個人を識別できる情報(氏名と結び付いた居住地)は個人情報であり、公開地図に既定の適法根拠は無い。"
+    :url "https://elaws.e-gov.go.jp/document?lawid=415AC0000000057"}
+   {:id :gdpr-art-4-1
+    :name "GDPR Art.4(1) — personal data"
+    :gate :residential-privacy-gate
+    :basis "A home address linked to an identified natural person is personal data; publication needs a lawful basis this actor does not assert."
+    :url "https://gdpr-info.eu/art-4-gdpr/"}])
+
+(def lei-accepted-statuses
+  "GLEIF registration statuses this actor accepts as verification. Only
+  `:issued` — every other status (lapsed, retired, annulled, pending) means
+  the registry itself no longer vouches for the record."
+  #{:issued})
+
+(def commercial-poi-categories
+  "POI categories that assert a business exists at a location, and
+  therefore require entity verification. Non-commercial categories (parks,
+  transit stops, public buildings) do not claim a legal entity and are not
+  gated on one."
+  #{:retail :restaurant :service :office :lodging :medical :finance})
+
+(defn commercial-poi-category? [category]
+  (contains? commercial-poi-categories category))
+
+(defn lei-verified?
+  "True when `lei-record` is a registry record in an accepted status."
+  [lei-record]
+  (boolean (and lei-record
+                (contains? lei-accepted-statuses (:status lei-record)))))
+
+(defn poi-coverage
+  "Honest, machine-checkable report of what the map slice's R0 covers."
+  []
+  {:gate-count 2
+   :legal-basis-count (count poi-legal-bases)
+   :gates (into #{} (map :gate poi-legal-bases))
+   :note (str "POI R0 scope: 2 HARD gates, each grounded in real citable "
+              "bases (ISO 17442 LEI + FTC Act §5 for entity verification; "
+              "APPI 第2条第1項 + GDPR Art.4(1) for residential privacy). "
+              "NOT verified by this actor: the ISIC code a POI claims is "
+              "operator-asserted, not registry-issued — it is only "
+              "cross-checked for CONTRADICTION against a resolved LEI "
+              "record that carries its own code. Extend only by adding a "
+              "real citable basis or a real registry integration — never "
+              "by fabricating either.")})
+
 (defn class-allowed? [source-class]
   (contains? allowed-source-classes source-class))
 
