@@ -3,25 +3,39 @@
  :itonami.blueprint/isic-rev4 "6312"
  :itonami.blueprint/domain :media/web-portal
  :itonami.blueprint/license "AGPL-3.0-or-later"
- :itonami.blueprint/social-impact [:content-provenance :license-compliance :sponsorship-disclosure]
+ :itonami.blueprint/social-impact [:content-provenance :license-compliance :sponsorship-disclosure
+                                  :business-identity-verification :location-privacy]
  :itonami.blueprint/governor :portal-governor
  :itonami.blueprint/robotics false
  :itonami.blueprint/required-technologies [:identity :audit-ledger]
  :itonami.blueprint/status :public-oss
  :itonami.blueprint/maturity :implemented
  :itonami.blueprint/implemented-slice
- "PortalCurator-LLM ⊣ PortalGovernor (portal.policy, eight checks: rbac ·
-  source-provenance-gate · license-scope-gate (17 U.S.C. §107 fair-use-
-  excerpt ceiling, this actor's domain-unique HARD check) ·
+ "PortalCurator-LLM ⊣ PortalGovernor (portal.policy, eleven checks — eight
+  HARD: rbac · source-provenance-gate · license-scope-gate (17 U.S.C. §107
+  fair-use-excerpt ceiling, this actor's domain-unique HARD check) ·
   disclosure-gate (16 CFR Part 255 native-advertising disclosure, second
-  domain-unique HARD check) · licensed-disclosure · confidence-floor ·
+  domain-unique HARD check) · licensed-disclosure · geo-bounds-gate ·
+  entity-verification-gate (ISO 17442 LEI + FTC Act §5, the fabricated-
+  business-listing defense) · residential-privacy-gate (個人情報保護法
+  第2条第1項 / GDPR Art.4(1)); three soft: confidence-floor ·
   sensitive-subject-gate · correction-requests-always-escalate), langgraph
   StateGraph (portal.operation), append-only audit ledger
   (portal.store/ledger + append-ledger!). A phase 0→3 staged-autonomy gate
   (portal.phase) sits on top of the governor and can only narrow, never
-  widen, what the governor already allowed. 35 tests / 141 assertions
-  green (`clojure -M:dev:test`), demo runnable end-to-end
-  (`clojure -M:dev:run`). Optional `portal.marketdata-bridge` integration
-  with the sibling cloud-itonami-isic-6311 market-data actor is covered by
-  a separate opt-in test suite (`clojure -M:dev:test:market-data`) that
-  isn't required for `portal.*` core to stay green."}
+  widen, what the governor already allowed; `:poi/publish` enters one
+  phase later than `:listing/publish`. The map slice (docs/adr/0002,
+  com-junkawasaki/root ADR-2607276000) adds `poi` + `lei-entity` entities
+  on both store backends, `:poi/publish` / `:poi/search` ops, and a
+  `:geo-editor` role; `:lei` is the same `:company/lei` join key the
+  fleet's cloud-itonami-lei-* blueprints use, gated to :tier/analytics and
+  above. Projection and tile math are CONSUMED from kotoba-lang/map
+  (portal.geo, portal.map-bridge) — this repo implements no renderer.
+  71 tests / 316 assertions green (`clojure -M:dev:test`), demo runnable
+  end-to-end (`clojure -M:dev:run`, 13 operations), operator console
+  regenerated from a real actor run and byte-identical across reruns
+  (`clojure -M:dev:render-html`). Optional `portal.marketdata-bridge`
+  integration with the sibling cloud-itonami-isic-6311 market-data actor
+  is covered by a separate opt-in test suite
+  (`clojure -M:dev:test:market-data`) that isn't required for `portal.*`
+  core to stay green."}

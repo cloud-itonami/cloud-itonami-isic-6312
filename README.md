@@ -37,6 +37,33 @@ public domain, CC BY 4.0, the fair-use excerpt doctrine) or an
 operator-registered `:licensed-syndication` agreement — never a bare
 "the LLM summarized it".
 
+### Map slice (POIs)
+
+The same portal, with coordinates. A **POI** is a curated point on the
+map; publishing one asserts two things an article listing does not — that
+a business at that location **exists**, and that a location is a **public
+place**. Both have real legal exposure and neither is something the
+PortalCurator-LLM can adjudicate, so both are governor HARD gates
+(`docs/adr/0002-map-slice.md`, com-junkawasaki/root ADR-2607276000):
+
+| Gate | Rejects | Basis |
+|---|---|---|
+| `entity-verification-gate` | a commercial POI with no legal entity, an unresolvable or **lapsed** registration, or an ISIC code that **contradicts** the registry record | ISO 17442 (LEI) · FTC Act §5 |
+| `residential-privacy-gate` | a private residence tied to a **named** natural person | 個人情報保護法 第2条第1項 · GDPR Art.4(1) |
+| `geo-bounds-gate` | an invalid/NaN/missing coordinate, or one outside the operator's declared service area | structural operator control |
+
+`:lei` is deliberately the same join key the fleet's `cloud-itonami-lei-*`
+blueprints use (`:company/lei`), so a governed POI can be joined to entity,
+financial and ToS facts held elsewhere without this actor duplicating any
+of them. That join key is **analytics-tier**: a `:tier/basic` search
+returns a map, not a resolvable entity graph.
+
+Rendering is **consumed, not reimplemented**: projection and tile math come
+from [`kotoba-lang/map`](https://github.com/kotoba-lang/map) (the pure-`.cljc`
+port of the KAMI WebGPU map renderer) via `portal.geo` and
+`portal.map-bridge`. This repo contains no renderer of its own, and the
+sample console fetches no third-party tiles.
+
 ## Consuming this actor from another blueprint
 
 The governed read op is `:report/query` (a listing's curation/placement
@@ -88,8 +115,9 @@ discloses, or resolves a takedown the PortalGovernor would reject.
 ## Run
 
 ```bash
-clojure -M:dev:test   # governor contract · store parity · phases · facts
-clojure -M:dev:run    # 8-operation demo through one OperationActor
+clojure -M:dev:test        # governor contract · store parity · phases · facts · geo · POI gates
+clojure -M:dev:run         # 13-operation demo through one OperationActor (7 content + 6 map)
+clojure -M:dev:render-html # regenerate docs/samples/operator-console.html from a real run
 clojure -M:lint
 ```
 
@@ -128,5 +156,14 @@ clojure -M:dev:test:market-data   # runs the bridge test too (main-opts order ma
 - Do not fabricate a source-catalog entry or a content-license record.
 - Do not publish a sponsored placement without an explicit disclosure
   label.
+- Do not publish a POI for a business whose legal entity cannot be
+  resolved in a registry, and do not weaken `lei-accepted-statuses` to
+  admit lapsed registrations.
+- Do not publish a residential POI tied to a named natural person, and do
+  not add an approver override for that gate — it is HARD by design.
+- Do not add a renderer, tile client or projection implementation to this
+  repo. Consume `kotoba-lang/map`.
+- Do not move `:lei` / `:isic-code` / `:subject-name` down into
+  `:tier/basic` POI disclosure.
 
 License: AGPL-3.0-or-later.

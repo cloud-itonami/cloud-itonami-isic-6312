@@ -21,6 +21,15 @@
   order-fulfillment or payment processing — this actor only curates and
   discloses portal content, it never handles money movement.
 
+  The map slice adds two more (com-junkawasaki/root ADR-2607276000): a
+  `poi` (a curated point on the map — coordinates, category, the legal
+  entity it claims, the ISIC code it is filed under) and a `lei-entity`
+  (a registry record for that claimed entity, carrying a GLEIF
+  registration status). `:lei` is deliberately the SAME join key the
+  fleet's `cloud-itonami-lei-*` blueprints and the workspace EDN plane use
+  (`:company/lei`), so a POI can be joined to entity, financial and ToS
+  facts held elsewhere without this actor duplicating any of them.
+
   The ledger stays append-only on every backend — 'who published/featured/
   removed what, on what license/contract, on what source basis' is always
   a query over an immutable log."
@@ -37,6 +46,9 @@
   (placement [s slot-id] "the current listing occupying a placement slot")
   (content-license [s license-id])
   (contract [s tenant])
+  (poi [s id]                 "a curated point of interest on the map")
+  (all-pois [s])
+  (lei-entity [s lei]         "registry record for a claimed legal entity")
   (ledger [s])
   (commit-record! [s record] "apply a committed op's record to the SSoT")
   (append-ledger! [s fact]   "append one immutable decision/disclosure fact")
@@ -44,7 +56,9 @@
   (with-listings [s listings]         "replace/seed listings (map id→listing)")
   (with-placements [s placements]     "replace/seed placements (map slot-id→placement)")
   (with-content-licenses [s licenses] "replace/seed content licenses (map license-id→license)")
-  (with-contracts [s contracts]       "replace/seed advertiser contracts (map tenant→contract)"))
+  (with-contracts [s contracts]       "replace/seed advertiser contracts (map tenant→contract)")
+  (with-pois [s pois]                 "replace/seed POIs (map id→poi)")
+  (with-lei-entities [s entities]     "replace/seed LEI registry records (map lei→entity)"))
 
 ;; ───────────────────────── demo data (fictitious, non-real listings) ─────
 
@@ -76,7 +90,28 @@
     "lic-expired" {:license-id "lic-expired" :provider "失効デモ提携先(架空)" :active? false}}
    :contracts
    {"tenant-acme"  {:tenant "tenant-acme" :tier :tier/analytics :active? true :purpose :ad-buyer}
-    "tenant-basic" {:tenant "tenant-basic" :tier :tier/basic :active? true :purpose :syndication-partner}}})
+    "tenant-basic" {:tenant "tenant-basic" :tier :tier/basic :active? true :purpose :syndication-partner}}
+   ;; ── map slice ──
+   ;; LEI values are DEMO-prefixed and are NOT valid ISO 17442 codes, so
+   ;; nothing here can be mistaken for (or resolved against) a real
+   ;; registered entity. `demo-lapsed` exists purely to exercise the
+   ;; entity-verification gate's stale-registration branch.
+   :lei-entities
+   {"DEMO0000000000000001" {:lei "DEMO0000000000000001" :legal-name "デモ書店(架空)"
+                            :jurisdiction "JP" :status :issued :isic-code "4761"
+                            :as-of "2026-07-01T00:00:00Z"}
+    "DEMO0000000000000002" {:lei "DEMO0000000000000002" :legal-name "失効デモ商店(架空)"
+                            :jurisdiction "JP" :status :lapsed :isic-code "4711"
+                            :as-of "2026-07-01T00:00:00Z"}}
+   :pois
+   {"poi-100" {:id "poi-100" :name "デモ書店(架空)" :lat 35.681236 :lng 139.767125
+               :category :retail :isic-code "4761" :lei "DEMO0000000000000001"
+               :source-id "src-gov1" :status :live :residential? false
+               :subject-name nil :as-of "2026-07-10T00:00:00Z"}
+    "poi-200" {:id "poi-200" :name "デモ公園(架空)" :lat 35.685175 :lng 139.752799
+               :category :park :isic-code nil :lei nil
+               :source-id "src-gov1" :status :live :residential? false
+               :subject-name nil :as-of "2026-07-10T00:00:00Z"}}})
 
 ;; ───────────────────────── MemStore (default) ─────────────────────────
 
@@ -89,11 +124,15 @@
   (placement [_ slot-id] (get-in @a [:placements slot-id]))
   (content-license [_ license-id] (get-in @a [:content-licenses license-id]))
   (contract [_ tenant] (get-in @a [:contracts tenant]))
+  (poi [_ id] (get-in @a [:pois id]))
+  (all-pois [_] (sort-by :id (vals (:pois @a))))
+  (lei-entity [_ lei] (get-in @a [:lei-entities lei]))
   (ledger [_] (:ledger @a))
   (commit-record! [s {:keys [effect path value]}]
     (case effect
       :listing-upsert   (swap! a assoc-in [:listings (:id value)] value)
       :placement-upsert (swap! a assoc-in [:placements (:slot-id value)] value)
+      :poi-upsert       (swap! a assoc-in [:pois (:id value)] value)
       :correction-apply (swap! a update-in [:listings (first path)] merge (:patch value))
       nil)
     s)
@@ -102,7 +141,9 @@
   (with-listings [s ls]         (when (seq ls) (swap! a assoc :listings ls)) s)
   (with-placements [s ps]       (when (seq ps) (swap! a assoc :placements ps)) s)
   (with-content-licenses [s cs] (when (seq cs) (swap! a assoc :content-licenses cs)) s)
-  (with-contracts [s cts]       (when (seq cts) (swap! a assoc :contracts cts)) s))
+  (with-contracts [s cts]       (when (seq cts) (swap! a assoc :contracts cts)) s)
+  (with-pois [s ps]             (when (seq ps) (swap! a assoc :pois ps)) s)
+  (with-lei-entities [s es]     (when (seq es) (swap! a assoc :lei-entities es)) s))
 
 (defn seed-db
   "A MemStore seeded with the demo data. The deterministic default."
@@ -120,6 +161,8 @@
    :placement/slot-id  {:db/unique :db.unique/identity}
    :content-license/id {:db/unique :db.unique/identity}
    :contract/tenant    {:db/unique :db.unique/identity}
+   :poi/id             {:db/unique :db.unique/identity}
+   :lei-entity/lei     {:db/unique :db.unique/identity}
    :ledger/seq         {:db/unique :db.unique/identity}})
 
 (defn- enc [v] (pr-str v))
@@ -198,6 +241,51 @@
 (def ^:private contract-pull
   [:contract/tenant :contract/tier :contract/active :contract/purpose])
 
+(defn- poi->tx [{:keys [id name lat lng category isic-code lei source-id status
+                        residential? subject-name as-of]}]
+  (cond-> {:poi/id id}
+    name         (assoc :poi/name name)
+    (some? lat)  (assoc :poi/lat lat)
+    (some? lng)  (assoc :poi/lng lng)
+    category     (assoc :poi/category category)
+    isic-code    (assoc :poi/isic-code isic-code)
+    lei          (assoc :poi/lei lei)
+    source-id    (assoc :poi/source-id source-id)
+    status       (assoc :poi/status status)
+    subject-name (assoc :poi/subject-name subject-name)
+    as-of        (assoc :poi/as-of as-of)
+    true         (assoc :poi/residential (boolean residential?))))
+
+(defn- pull->poi [m]
+  (when (:poi/id m)
+    {:id (:poi/id m) :name (:poi/name m) :lat (:poi/lat m) :lng (:poi/lng m)
+     :category (:poi/category m) :isic-code (:poi/isic-code m) :lei (:poi/lei m)
+     :source-id (:poi/source-id m) :status (:poi/status m)
+     :residential? (:poi/residential m) :subject-name (:poi/subject-name m)
+     :as-of (:poi/as-of m)}))
+
+(def ^:private poi-pull
+  [:poi/id :poi/name :poi/lat :poi/lng :poi/category :poi/isic-code :poi/lei
+   :poi/source-id :poi/status :poi/residential :poi/subject-name :poi/as-of])
+
+(defn- lei-entity->tx [{:keys [lei legal-name jurisdiction status isic-code as-of]}]
+  (cond-> {:lei-entity/lei lei}
+    legal-name   (assoc :lei-entity/legal-name legal-name)
+    jurisdiction (assoc :lei-entity/jurisdiction jurisdiction)
+    status       (assoc :lei-entity/status status)
+    isic-code    (assoc :lei-entity/isic-code isic-code)
+    as-of        (assoc :lei-entity/as-of as-of)))
+
+(defn- pull->lei-entity [m]
+  (when (:lei-entity/lei m)
+    {:lei (:lei-entity/lei m) :legal-name (:lei-entity/legal-name m)
+     :jurisdiction (:lei-entity/jurisdiction m) :status (:lei-entity/status m)
+     :isic-code (:lei-entity/isic-code m) :as-of (:lei-entity/as-of m)}))
+
+(def ^:private lei-entity-pull
+  [:lei-entity/lei :lei-entity/legal-name :lei-entity/jurisdiction
+   :lei-entity/status :lei-entity/isic-code :lei-entity/as-of])
+
 (defrecord DatomicStore [conn]
   Store
   (source [_ id] (pull->source (d/pull (d/db conn) source-pull [:source/id id])))
@@ -215,6 +303,13 @@
   (content-license [_ license-id]
     (pull->content-license (d/pull (d/db conn) content-license-pull [:content-license/id license-id])))
   (contract [_ tenant] (pull->contract (d/pull (d/db conn) contract-pull [:contract/tenant tenant])))
+  (poi [_ id] (pull->poi (d/pull (d/db conn) poi-pull [:poi/id id])))
+  (all-pois [_]
+    (->> (d/q '[:find [?id ...] :where [?e :poi/id ?id]] (d/db conn))
+         (map #(pull->poi (d/pull (d/db conn) poi-pull [:poi/id %])))
+         (sort-by :id)))
+  (lei-entity [_ lei]
+    (pull->lei-entity (d/pull (d/db conn) lei-entity-pull [:lei-entity/lei lei])))
   (ledger [_]
     (->> (d/q '[:find ?s ?f :where [?e :ledger/seq ?s] [?e :ledger/fact ?f]] (d/db conn))
          (sort-by first)
@@ -223,6 +318,7 @@
     (case effect
       :listing-upsert   (d/transact! conn [(listing->tx value)])
       :placement-upsert (d/transact! conn [(placement->tx value)])
+      :poi-upsert       (d/transact! conn [(poi->tx value)])
       :correction-apply
       (d/transact! conn [(listing->tx (merge (listing s (first path)) (:patch value)))])
       nil)
@@ -239,17 +335,22 @@
   (with-content-licenses [s cs]
     (when (seq cs) (d/transact! conn (mapv content-license->tx (vals cs)))) s)
   (with-contracts [s cts]
-    (when (seq cts) (d/transact! conn (mapv contract->tx (vals cts)))) s))
+    (when (seq cts) (d/transact! conn (mapv contract->tx (vals cts)))) s)
+  (with-pois [s ps]
+    (when (seq ps) (d/transact! conn (mapv poi->tx (vals ps)))) s)
+  (with-lei-entities [s es]
+    (when (seq es) (d/transact! conn (mapv lei-entity->tx (vals es)))) s))
 
 (defn datomic-store
   "A DatomicStore (langchain.db backend) seeded from `data`; empty when
   omitted."
   ([] (datomic-store {}))
-  ([{:keys [sources listings placements content-licenses contracts]}]
+  ([{:keys [sources listings placements content-licenses contracts pois lei-entities]}]
    (let [s (->DatomicStore (d/create-conn schema))]
      (-> s (with-sources sources) (with-listings listings)
          (with-placements placements) (with-content-licenses content-licenses)
-         (with-contracts contracts)))))
+         (with-contracts contracts) (with-pois pois)
+         (with-lei-entities lei-entities)))))
 
 (defn datomic-seed-db
   "A DatomicStore seeded with the demo data — the Datomic-backed analog of
