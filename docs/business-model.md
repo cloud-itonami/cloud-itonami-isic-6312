@@ -79,6 +79,44 @@ Operators can sell:
 | Analytics tier | ad-ops team | monthly platform fee |
 | Audit tier | compliance/legal team | monthly fee + usage |
 | Fleet wholesale | other cloud-itonami operators | API metering |
+| Managed Starter | one portal operator (1,000–5,000 curated listings/POIs, 3–5 editors, a handful of advertiser contracts) | ¥20,000/月 flat |
+
+**Market-anchored (2026-08-10)**: benchmarked against 6 real competitor
+products. **Only 3 of the 6 publish real numbers.** Published:
+**MovableType.net** — Entry ¥3,850/月, Business ¥7,700/月, Enterprise
+¥16,500/月 (<https://movabletype.net/price/>); **Kuroco** — usage-metered
+(¥44 per 10,000 cached API hits, ¥55 per 1,000 standard hits, ¥110 per 5 GB
+transfer) with vendor-published worked examples of ≈¥22,000/月 for a
+1,000-member active community and ≈¥33,000/月 for a 1M-PV/month media site
+(<https://kuroco.app/ja/pricing/>); **Contentful** — Lite $300/月
+(≈¥45,000/月 at ~¥150/$), Enterprise custom
+(<https://www.contentful.com/pricing/>). **Not published — this is an
+observation, not a gap**: **Yext** shows four listing tiers with zero dollar
+figures, every one routing to "Contact Us" (<https://www.yext.com/pricing>);
+**HeartCore CMS** is 要問い合わせ; **Canly** (45,000+ Japanese storefronts
+under POI/listing management) is 要問い合わせ
+(<https://boxil.jp/service/7001/>). Notably, both POI/listing-side products
+in the sample disclose nothing, so the upper bound of the POI half of this
+market is unmeasured. **¥20,000/月 sits just below Kuroco's smallest
+published worked example and just above MovableType.net's top tier**, and
+that position is deliberate: this actor is *not* a CMS — it has no authoring
+UI, no hosting, and no renderer of its own (projection and tile math are
+consumed from `kotoba-lang/map`), so it cannot replace the CMS an operator
+already pays for and cannot command Contentful-Lite money. It sits *on top*
+of that CMS and adds what none of the 6 sell: provenance that must resolve
+to a real citable legal basis, a mandatory sponsored-content disclosure
+gate, and three HARD POI gates (entity verification against a live registry,
+residential-privacy refusal for a named natural person, geo-bounds) that an
+independent PortalGovernor can never be argued past.
+
+**Subscribe (2026-08-10)**: a live Stripe Payment Link for the Managed
+Starter tier (¥20,000/月 flat) is available now —
+<https://buy.stripe.com/cNicN63QjcJGe9O1zAeEo01>. This is a no-code
+Stripe-hosted checkout on Gftd Japan 株式会社's live account; nothing in
+this repo's actor code changed. Fulfillment is manual today — after
+subscribing, contact gftdcojp to arrange managed-tenant setup. **No portal
+operator has subscribed to this tier yet — this is a live, working checkout
+with zero paid tenants, not a claim of existing revenue.**
 
 ## Unit Economics
 
