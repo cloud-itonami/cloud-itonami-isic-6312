@@ -62,7 +62,7 @@
                                 NEVER auto-resolves, at any confidence, any
                                 phase."
   (:require [clojure.set :as set]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [portal.facts :as facts]
             [portal.geo :as geo]
             [portal.store :as store]))
