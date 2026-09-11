@@ -6,7 +6,7 @@
   no generator at all. This namespace drives the REAL actor stack
   (`portal.operation` -> `portal.policy` (PortalGovernor) -> `portal.store`)
   through a scenario adapted directly from this repo's own `portal.sim`
-  demo driver (`clojure -M:dev:run`, confirmed correct against the real
+  demo driver (`kbb -M:dev:run`, confirmed correct against the real
   seeded listing/source/placement/contract directory in `portal.store/
   demo-data` before this file was written -- unlike
   `cloud-itonami-isic-851`'s `schoolops.sim`, this repo's own sim driver
@@ -28,7 +28,7 @@
   argument instead of closing over one shared var. This is a real
   reflection of this actor's own RBAC shape, not an invented deviation.
 
-  Usage: `clojure -M:dev:render-html [out-file]`
+  Usage: `kbb -M:dev:render-html [out-file]`
   (default `docs/samples/operator-console.html`)."
   (:require [jp-go-dds.skin]
             [kotoba.lang.text :as str]
@@ -317,7 +317,7 @@
      "<main>\n"
      "  <section class=\"card\">\n"
      "    <h2>Listings (committed to the SSoT)</h2>\n"
-     "    <p class=\"muted\">Demo snapshot — build-time-generated from <code>portal.store</code> via <code>portal.render-html</code> (<code>clojure -M:dev:render-html</code>), regenerated nightly. HARD-held publish attempts (li-400, li-500) never reach this table — see the audit ledger below.</p>\n"
+     "    <p class=\"muted\">Demo snapshot — build-time-generated from <code>portal.store</code> via <code>portal.render-html</code> (<code>kbb -M:dev:render-html</code>), regenerated nightly. HARD-held publish attempts (li-400, li-500) never reach this table — see the audit ledger below.</p>\n"
      "    <table>\n"
      "      <thead><tr><th>Listing</th><th>Title</th><th>Source</th><th>Category</th><th>Status</th><th>Allegation subject?</th><th>Last op status</th></tr></thead>\n"
      "      <tbody>\n"

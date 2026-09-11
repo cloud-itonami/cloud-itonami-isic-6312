@@ -27,9 +27,9 @@
   :dev {:override-deps
         {io.github.kotoba-lang/langchain
          {:local/root "../../kotoba-lang/langchain"}}}
-  ;; clojure -M:dev:run  → drive the demo through one OperationActor
+  ;; kbb -M:dev:run  → drive the demo through one OperationActor
   :run {:main-opts ["-m" "portal.sim"]}
-  ;; clojure -M:dev:render-html [out-file] → regenerate docs/samples/operator-console.html
+  ;; kbb -M:dev:render-html [out-file] → regenerate docs/samples/operator-console.html
   ;; through the real actor (flagship checklist item 2, ADR-2607189300 Wave5 seq 6+).
   :render-html {:main-opts ["-m" "portal.render-html"]}
   :test {:extra-paths ["test"]
@@ -39,11 +39,11 @@
          :exec-fn cognitect.test-runner.api/test}
   ;; OPTIONAL -- pulls in cloud-itonami-isic-6311 (market-data actor) for
   ;; `portal.marketdata-bridge` and its test only. `portal.*` core never
-  ;; needs this; `clojure -M:dev:test` (no :market-data) stays green
+  ;; needs this; `kbb -M:dev:test` (no :market-data) stays green
   ;; without cloud-itonami-isic-6311 checked out at all. `:main-opts` here
   ;; must come LAST on the command line to win over :test's (aliases don't
   ;; merge :main-opts, the last-selected alias defining it wins) --
-  ;; `clojure -M:dev:test:market-data`, not `:market-data:dev:test`.
+  ;; `kbb -M:dev:test:market-data`, not `:market-data:dev:test`.
   :market-data {:extra-paths ["test-market-data"]
                 :extra-deps {io.github.cloud-itonami/cloud-itonami-isic-6311
                              {:local/root "../../cloud-itonami/cloud-itonami-isic-6311"}

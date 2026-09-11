@@ -1,5 +1,5 @@
 (ns portal.marketdata-bridge-test
-  "Only runs under `clojure -M:market-data:dev:test` (needs
+  "Only runs under `kbb -M:market-data:dev:test` (needs
   cloud-itonami-isic-6311 checked out as a sibling repo). The single
   invariant under test: a market-data-sourced listing is never special-
   cased past portal's own governance — if isic-6311's OWN governed query

@@ -136,7 +136,7 @@ intake → advise → govern → decide ─┬─ commit ───────�
 `src/portal/report.cljk`。`render-listing` は PortalGovernor が承認した
 列のみを出力する。列ポリシーはコードで固定される。
 
-## 7. デモ(`clojure -M:dev:run`)
+## 7. デモ(`kbb -M:dev:run`)
 
 `src/portal/sim.cljk` が8操作を actor に通す(§sim.cljc docstring 参照):
 公共ドメイン記事掲載 → commit、出典なしリスティング → hold、tier超過/
@@ -144,7 +144,7 @@ intake → advise → govern → decide ─┬─ commit ───────�
 配置 → hold、告発対象の配置 → 人間承認 → commit、削除/訂正申立て → 常に
 人間承認 → commit。
 
-## 8. テスト(`clojure -M:dev:test`)
+## 8. テスト(`kbb -M:dev:test`)
 
 `test/portal/policy_contract_test.cljk` が**ガバナンス契約を実行可能**に
 する。`test/portal/phase_test.cljk` が段階導入と「削除申立ては恒久的に

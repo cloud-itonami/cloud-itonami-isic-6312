@@ -22,7 +22,7 @@
     op12 POI 検索が tier/basic 契約なのに :lei 等まで要求      → licensed-disclosure REJECT → hold
     op13 POI 検索(契約 tier 内の列のみ)                       → commit
 
-  Run: clojure -M:dev:run"
+  Run: kbb -M:dev:run"
   (:require [langgraph.graph :as g]
             [portal.store :as store]
             [portal.operation :as op]

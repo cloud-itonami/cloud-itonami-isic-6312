@@ -31,11 +31,11 @@
   fleet's cloud-itonami-lei-* blueprints use, gated to :tier/analytics and
   above. Projection and tile math are CONSUMED from kotoba-lang/map
   (portal.geo, portal.map-bridge) — this repo implements no renderer.
-  71 tests / 316 assertions green (`clojure -M:dev:test`), demo runnable
-  end-to-end (`clojure -M:dev:run`, 13 operations), operator console
+  71 tests / 316 assertions green (`kbb -M:dev:test`), demo runnable
+  end-to-end (`kbb -M:dev:run`, 13 operations), operator console
   regenerated from a real actor run and byte-identical across reruns
-  (`clojure -M:dev:render-html`). Optional `portal.marketdata-bridge`
+  (`kbb -M:dev:render-html`). Optional `portal.marketdata-bridge`
   integration with the sibling cloud-itonami-isic-6311 market-data actor
   is covered by a separate opt-in test suite
-  (`clojure -M:dev:test:market-data`) that isn't required for `portal.*`
+  (`kbb -M:dev:test:market-data`) that isn't required for `portal.*`
   core to stay green."}
