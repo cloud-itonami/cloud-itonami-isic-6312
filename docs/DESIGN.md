@@ -33,9 +33,9 @@ PortalSystem (root supervisor)
 ├── PlacementActor ……… 配置/featuring 投影(:placement/feature)
 │
 ├── OperationActor[op] … ★ 1操作 = 1 actor run; PortalCurator-LLM 封じ込め ★
-│     ├── PortalCurator-LLM (sealed)  proposal only(src/portal/llm.cljc)
-│     ├── PortalGovernor              INDEPENDENT ゲート(src/portal/policy.cljc)
-│     ├── Committer                   SSoT/台帳への書き込み(src/portal/store.cljc)
+│     ├── PortalCurator-LLM (sealed)  proposal only(src/portal/llm.cljk)
+│     ├── PortalGovernor              INDEPENDENT ゲート(src/portal/policy.cljk)
+│     ├── Committer                   SSoT/台帳への書き込み(src/portal/store.cljk)
 │     └── Recorder                     監査台帳(append-only)
 │
 ├── ReviewActor ……… 人間レビュー(機微性の高い配置・削除申立ての interrupt を受ける)
@@ -54,7 +54,7 @@ PortalSystem (root supervisor)
 
 ## 3. OperationActor 内部(PortalCurator-LLM ラッパー)
 
-`src/portal/operation.cljc` の langgraph StateGraph として実装。
+`src/portal/operation.cljk` の langgraph StateGraph として実装。
 **1 run = 1 操作** — 有界で監査可能、無限内部ループを持たない。
 
 ```
@@ -89,7 +89,7 @@ intake → advise → govern → decide ─┬─ commit ───────�
 
 ## 4. PortalGovernor(独立検閲層)
 
-`src/portal/policy.cljc`。LLM とは別経路で、提案を可決/拒否/escalate に
+`src/portal/policy.cljk`。LLM とは別経路で、提案を可決/拒否/escalate に
 判定する。
 
 ```clojure
@@ -122,7 +122,7 @@ intake → advise → govern → decide ─┬─ commit ───────�
 
 ## 5. SSoT と監査台帳
 
-`src/portal/store.cljc`。dev は in-mem の EDN 事実層(本番は Datomic)。
+`src/portal/store.cljk`。dev は in-mem の EDN 事実層(本番は Datomic)。
 
 - **entities**: `sources`(license-class別) `listings`(集約リスティング)
   `placements`(配置/featuring) `content-licenses`(取込ライセンス)
@@ -133,12 +133,12 @@ intake → advise → govern → decide ─┬─ commit ───────�
 
 ## 6. 開示(governed read)
 
-`src/portal/report.cljc`。`render-listing` は PortalGovernor が承認した
+`src/portal/report.cljk`。`render-listing` は PortalGovernor が承認した
 列のみを出力する。列ポリシーはコードで固定される。
 
 ## 7. デモ(`clojure -M:dev:run`)
 
-`src/portal/sim.cljc` が8操作を actor に通す(§sim.cljc docstring 参照):
+`src/portal/sim.cljk` が8操作を actor に通す(§sim.cljc docstring 参照):
 公共ドメイン記事掲載 → commit、出典なしリスティング → hold、tier超過/
 未契約の開示 → hold ×2、抜粋上限超過 → hold、開示ラベル無しスポンサード
 配置 → hold、告発対象の配置 → 人間承認 → commit、削除/訂正申立て → 常に
@@ -146,10 +146,10 @@ intake → advise → govern → decide ─┬─ commit ───────�
 
 ## 8. テスト(`clojure -M:dev:test`)
 
-`test/portal/policy_contract_test.clj` が**ガバナンス契約を実行可能**に
-する。`test/portal/phase_test.clj` が段階導入と「削除申立ては恒久的に
+`test/portal/policy_contract_test.cljk` が**ガバナンス契約を実行可能**に
+する。`test/portal/phase_test.cljk` が段階導入と「削除申立ては恒久的に
 人間専用」、そして**デフォルト phase(1)を省略した呼び出し元が最大自律性を
-得ない**ことを保証する。`test/portal/facts_test.clj` が出典カタログ自体の
+得ない**ことを保証する。`test/portal/facts_test.cljk` が出典カタログ自体の
 正直さ(捏造禁止)を保証する。
 
 ## 9. 実装と業態の対応(Yahoo!/AOL/MSN → web-portal actor)
