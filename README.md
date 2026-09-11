@@ -115,10 +115,10 @@ discloses, or resolves a takedown the PortalGovernor would reject.
 ## Run
 
 ```bash
-clojure -M:dev:test        # governor contract · store parity · phases · facts · geo · POI gates
-clojure -M:dev:run         # 13-operation demo through one OperationActor (7 content + 6 map)
-clojure -M:dev:render-html # regenerate docs/samples/operator-console.html from a real run
-clojure -M:lint
+kbb -M:dev:test        # governor contract · store parity · phases · facts · geo · POI gates
+kbb -M:dev:run         # 13-operation demo through one OperationActor (7 content + 6 map)
+kbb -M:dev:render-html # regenerate docs/samples/operator-console.html from a real run
+kbb -M:lint
 ```
 
 ## Consuming cloud-itonami-isic-6311 for market-data content
@@ -141,7 +141,7 @@ composed with it. If the upstream query doesn't commit, the bridge emits
 ```bash
 # needs cloud-itonami-isic-6311 checked out as a sibling repo
 # (../../cloud-itonami/cloud-itonami-isic-6311 relative to this repo)
-clojure -M:dev:test:market-data   # runs the bridge test too (main-opts order matters)
+kbb -M:dev:test:market-data   # runs the bridge test too (main-opts order matters)
 ```
 
 ## Non-Negotiables

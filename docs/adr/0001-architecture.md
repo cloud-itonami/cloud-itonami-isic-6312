@@ -76,8 +76,8 @@ OperationActor 内で PortalCurator-LLM は *proposal*(リスティング案・�
 - (+) `kotoba-lang/industry` registry の 6312 スロットが実装へ昇格。
 - (+) license-scope-gate・disclosure-gate という、他の cloud-itonami
   actor に存在しないコンテンツ集約業固有の HARD チェックを新設した。
-- (+) `clojure -M:dev:test`: 35 tests / 137 assertions、0 failures。
-  `clojure -M:lint`: エラー0・警告0。`clojure -M:dev:run` デモも
+- (+) `kbb -M:dev:test`: 35 tests / 137 assertions、0 failures。
+  `kbb -M:lint`: エラー0・警告0。`kbb -M:dev:run` デモも
   end-to-end で確認済み(8シナリオ全て正しく発火)。
 - (-) R0 の自由法的根拠は3種のみ。ほとんどの商用シンジケーション契約は
   operator の content-license 登録が必須で、この actor 単体では取込できな
