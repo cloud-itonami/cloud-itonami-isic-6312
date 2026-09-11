@@ -60,7 +60,7 @@ OperationActor 内で PortalCurator-LLM は *proposal*(リスティング案・�
 
 ### 4. R0 の正直なスコープ(捏造禁止)
 
-出典カタログ(`src/portal/facts.cljc`)は実在する3つの自由・公式法的根拠
+出典カタログ(`src/portal/facts.cljk`)は実在する3つの自由・公式法的根拠
 (US federal public domain: 17 U.S.C. §105、CC BY 4.0、fair-use excerpt:
 17 U.S.C. §107)+ 1つの構造的クラス `:licensed-syndication`(operator が
 自前のライセンス契約を `content-license` レコードとして登録して初めて
