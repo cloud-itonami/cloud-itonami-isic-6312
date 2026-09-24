@@ -6,7 +6,7 @@
     PortalCurator-LLM never publishes/features/discloses/resolves a
     record the PortalGovernor would reject, and every decision (commit OR
     hold) leaves exactly one ledger fact."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [langgraph.graph :as g]
             [portal.store :as store]
             [portal.operation :as op]))

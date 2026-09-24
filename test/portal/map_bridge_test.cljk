@@ -4,7 +4,7 @@
   ADR-2607276000). The expected tile indices below are the standard
   slippy-map values, derivable from the zoom level alone, not copied from
   a previous run."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [kotoba.map.constants :as mapc]
             [portal.map-bridge :as bridge]))
 

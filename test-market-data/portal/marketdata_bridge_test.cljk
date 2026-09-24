@@ -5,7 +5,7 @@
   cased past portal's own governance — if isic-6311's OWN governed query
   does not commit, the resulting portal listing HARD-fails source-
   provenance too, exactly like an ordinary unsourced listing would."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [langgraph.graph :as g]
             [marketdata.store :as md-store]
             [marketdata.operation :as md-op]
