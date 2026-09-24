@@ -10,7 +10,7 @@
   Every failure case below is proposed by the advisor at HIGH confidence
   on purpose — the three map-slice gates are HARD and must not consult
   confidence at all."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [langgraph.graph :as g]
             [portal.report :as report]
             [portal.store :as store]

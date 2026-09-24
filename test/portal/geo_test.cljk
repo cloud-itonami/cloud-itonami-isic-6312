@@ -4,7 +4,7 @@
   against numbers copied out of a previous run — one degree of longitude at
   the equator is R·π/180 and half a great circle is R·π, so both are
   independently derivable."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [portal.geo :as geo]))
 
 (def ^:private tokyo {:lat 35.681236 :lng 139.767125})
